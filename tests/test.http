@@ -3,7 +3,16 @@ POST http://localhost:8080/auth/login
 Content-Type: application/json
 
 {
-    "email": "test@test.co.uk",
+    "email": "test1@test.co.uk",
+    "password": "secret123"
+}
+
+###
+POST http://localhost:8080/auth/register
+Content-Type: application/json
+
+{
+    "email": "test1@test.co.uk",
     "password": "secret123"
 }
 

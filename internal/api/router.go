@@ -23,5 +23,10 @@ func NewRouter() http.Handler {
 
 	mux.Handle("/auth/login", loginHandler)
 
+	registerHandler := handlers.RegisterHandler(authService)
+	registerHandler = httpx.AllowMethod(http.MethodPost, registerHandler)
+
+	mux.Handle("/auth/register", registerHandler)
+
 	return mux
 }
