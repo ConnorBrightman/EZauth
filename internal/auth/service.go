@@ -8,10 +8,13 @@ type LoginInput struct {
 }
 
 type Service struct {
+	repo UserRepository
 }
 
-func NewService() *Service {
-	return &Service{}
+func NewService(repo UserRepository) *Service {
+	return &Service{
+		repo: repo,
+	}
 }
 
 func (s *Service) Login(input LoginInput) error {

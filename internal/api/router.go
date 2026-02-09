@@ -16,9 +16,10 @@ func NewRouter() http.Handler {
 
 	mux.Handle("/health", healthHandler)
 
-	authService := auth.NewService()
+	repo := auth.NewMemoryUserRepository()
+	authService := auth.NewService(repo)
+
 	loginHandler := handlers.LoginHandler(authService)
-	loginHandler = httpx.AllowMethod(http.MethodPost, loginHandler)
 
 	mux.Handle("/auth/login", loginHandler)
 
