@@ -1,48 +1,42 @@
 package config
 
 import (
-	"os"
-	"strconv"
+	"log"
 	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
-// Config holds all application configuration
 type Config struct {
-	Port         string
-	JWTSecret    []byte
-	TokenExpiry  time.Duration
-	StorageType  string // "memory" or "file"
-	UserFilePath string // used if StorageType == "file"
+	Port        string
+	JWTSecret   string
+	TokenExpiry time.Duration
+	Storage     string
+	FilePath    string // used if Storage == file
 }
 
-// LoadConfig reads environment variables or .env file
 func LoadConfig() *Config {
-	// Load .env if exists
-	_ = godotenv.Load()
+	viper.SetConfigName("config") // config.yaml
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./configs")
+	viper.AutomaticEnv() // allow overriding via env vars
 
-	port := getEnv("PORT", "8080")
-	jwtSecret := getEnv("JWT_SECRET", "super-secret-key")
-	storageType := getEnv("STORAGE_TYPE", "memory")
-	userFilePath := getEnv("USER_FILE_PATH", "./data/users.json")
+	// Default values
+	viper.SetDefault("PORT", "8080")
+	viper.SetDefault("JWT_SECRET", "super-secret-key")
+	viper.SetDefault("TOKEN_EXPIRY", 24*time.Hour)
+	viper.SetDefault("STORAGE", "memory")
+	viper.SetDefault("FILE_PATH", "./data/users.json")
 
-	tokenExpiryMinutes, _ := strconv.Atoi(getEnv("TOKEN_EXPIRY_MINUTES", "60"))
-	tokenExpiry := time.Duration(tokenExpiryMinutes) * time.Minute
+	if err := viper.ReadInConfig(); err != nil {
+		log.Println("No config file found, using defaults and environment variables")
+	}
 
 	return &Config{
-		Port:         port,
-		JWTSecret:    []byte(jwtSecret),
-		TokenExpiry:  tokenExpiry,
-		StorageType:  storageType,
-		UserFilePath: userFilePath,
+		Port:        viper.GetString("PORT"),
+		JWTSecret:   viper.GetString("JWT_SECRET"),
+		TokenExpiry: viper.GetDuration("TOKEN_EXPIRY"),
+		Storage:     viper.GetString("STORAGE"),
+		FilePath:    viper.GetString("FILE_PATH"),
 	}
-}
-
-// getEnv reads env or fallback
-func getEnv(key, fallback string) string {
-	if val := os.Getenv(key); val != "" {
-		return val
-	}
-	return fallback
 }

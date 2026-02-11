@@ -1,26 +1,24 @@
 package handlers
 
 import (
+	"net/http"
+
 	"ezauth/internal/httpx"
 	"ezauth/internal/middleware"
-	"net/http"
 )
 
+// MeHandler returns information about the currently authenticated user
 func MeHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		claims, ok := middleware.GetUserFromContext(r)
 		if !ok {
-			httpx.Error(w, http.StatusUnauthorized, "invalid token context")
+			httpx.Error(w, http.StatusUnauthorized, "unauthenticated")
 			return
 		}
 
-		userID, _ := claims["user_id"].(string)
-		email, _ := claims["email"].(string)
-
-		httpx.JSON(w, http.StatusOK, map[string]string{
-			"user_id": userID,
-			"email":   email,
+		httpx.JSON(w, http.StatusOK, map[string]interface{}{
+			"user_id": claims["user_id"],
+			"email":   claims["email"],
 		})
 	})
 }

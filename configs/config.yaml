@@ -1,0 +1,5 @@
+PORT: "8070"
+JWT_SECRET: "super-secret-key"
+TOKEN_EXPIRY: 24h
+STORAGE: "file"   # memory, file, sqlite
+FILE_PATH: "./data/users.json"
