@@ -1,38 +1,63 @@
-name: Build and Release
+name: Build & Release EZauth
 
 on:
   push:
     tags:
-      - 'v*'  # triggers on version tags like v0.1.0
-
-permissions:
-  contents: write
+      - "v*" # Trigger on version tags like v0.1.0
 
 jobs:
-  build:
+  build-release:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        goos: [windows, linux, darwin]
+        goos: [linux, darwin, windows]
         goarch: [amd64]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # 1. Checkout repo
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      # 2. Set up Go
+      - name: Set up Go
+        uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: '1.21'
 
+      # 3. Build binary
       - name: Build binary
         run: |
-          mkdir dist
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
-          go build -o dist/ezauth-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }} ./cmd/ezauth
+          mkdir -p dist
+          # Decide output name for release
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            output="dist/ezauth.exe"
+          else
+            output="dist/ezauth"
+          fi
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o $output ./cmd/ezauth
+          echo "Built binary: $output"
 
-      - name: Upload Release
-        uses: softprops/action-gh-release@v2
+      # 4. Generate checksums
+      - name: Generate checksums
+        run: |
+          cd dist
+          shasum -a 256 * > checksums.txt
+          cd ..
+
+      # 5. Create GitHub Release
+      - name: Create Release
+        id: release
+        uses: softprops/action-gh-release@v1
         with:
-          files: dist/*
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 6. Upload binaries and checksum
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: dist/*
+          asset_name: $(basename dist/*)
+          asset_content_type: application/octet-stream

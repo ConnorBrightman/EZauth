@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/ConnorBrightman/ezauth/internal/api"
 	"github.com/ConnorBrightman/ezauth/internal/auth"
@@ -13,16 +14,29 @@ import (
 )
 
 func main() {
+	// Handle `init` command
+	if len(os.Args) > 1 && os.Args[1] == "init" {
+		if err := config.InitConfig(); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("✅ EZauth initialized. You can now run `./ezauth`")
+		return
+	}
+
 	// Load configuration
 	cfg := config.LoadConfig()
+
 	// Ensure data directory exists if using file storage
 	if cfg.Storage == "file" {
-		if _, err := os.Stat("./data"); os.IsNotExist(err) {
-			os.Mkdir("./data", 0755)
+		dataDir := filepath.Dir(cfg.FilePath)
+		if _, err := os.Stat(dataDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dataDir, 0755); err != nil {
+				log.Fatalf("Failed to create data directory: %v", err)
+			}
 		}
 	}
 
-	// Choose repository
+	// Initialize user repository
 	var repo auth.UserRepository
 	var err error
 	switch cfg.Storage {
@@ -34,7 +48,7 @@ func main() {
 	case "memory":
 		repo = auth.NewMemoryUserRepository()
 	default:
-		log.Fatal("unsupported storage backend")
+		log.Fatal("unsupported storage backend: ", cfg.Storage)
 	}
 
 	// Create auth service
@@ -43,21 +57,25 @@ func main() {
 	// Create router with JWT secret
 	router := api.NewRouter(service, []byte(cfg.JWTSecret))
 
-	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 	// Wrap router with logging middleware
 	handler := middleware.Logging(router)
+
+	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 	server := &http.Server{
 		Addr:    addr,
 		Handler: handler,
 	}
 
-	log.Println(`                       
+	// Banner
+	log.Println(`
  _____ _____         _   _   
 |   __|__   |___ _ _| |_| |_ 
 |   __|   __| .'| | |  _|   |
 |_____|_____|__,|___|_| |_|_|              
-                                                                 
+Authentication made EZ          
 `)
-	log.Printf("Starting ezauth with storage=%s, port=%s, AccesstokenExpiry=%s\n", cfg.Storage, cfg.Port, cfg.AccessTokenExpiry)
+
+	log.Printf("Starting EZauth with storage=%s, port=%s, AccessTokenExpiry=%s, RefreshTokenExpiry=%s\n",
+		cfg.Storage, cfg.Port, cfg.AccessTokenExpiry, cfg.RefreshTokenExpiry)
 	log.Fatal(server.ListenAndServe())
 }
