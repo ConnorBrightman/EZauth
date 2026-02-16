@@ -3,7 +3,7 @@ name: Build & Release EZauth
 on:
   push:
     tags:
-      - 'v*'  # triggers on version tags like v0.1.0
+      - 'v*'
 
 permissions:
   contents: write
@@ -11,42 +11,38 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         goos: [linux, darwin, windows]
         goarch: [amd64]
 
     steps:
-      # 1. Checkout code
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2. Setup Go
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
 
-      # 3. Set version from Git tag
       - name: Set version
-        run: |
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
-      # 4. Build binary with version embedded
       - name: Build binary
         run: |
-          mkdir -p release
-          ldflags="-X 'main.version=${VERSION}'"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            output="release/ezauth.exe"
-          else
-            output="release/ezauth"
-          fi
-          echo "Building $output with version $VERSION"
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="$ldflags" -o $output ./cmd/ezauth
+          mkdir -p build/ezauth/bin
 
-      # 5. Upload binaries to GitHub Release
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            output="build/ezauth/bin/ezauth.exe"
+          else
+            output="build/ezauth/bin/ezauth"
+          fi
+
+          echo "Building $output"
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o $output ./cmd/ezauth
+
       - name: Upload to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: release/*
+          files: build/ezauth/bin/*

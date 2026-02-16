@@ -13,13 +13,25 @@ import (
 	"github.com/ConnorBrightman/ezauth/internal/middleware"
 )
 
+func getEZAuthRoot() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "./ezauth" // fallback
+	}
+	// Use the parent folder of the binary (bin/) as root
+	return filepath.Join(filepath.Dir(exePath), "..")
+}
+
 func main() {
-	// Handle `init` command
+	rootDir := getEZAuthRoot()
+	os.Chdir(rootDir) // make sure config writes relative to rootDir
+
 	if len(os.Args) > 1 && os.Args[1] == "init" {
-		if err := config.InitConfig(); err != nil {
+		err := config.InitConfig()
+		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("✅ EZauth initialized. You can now run `./ezauth`")
+		fmt.Println("✅ EZAuth initialized. You can now run `bin/ezauth.exe`")
 		return
 	}
 
