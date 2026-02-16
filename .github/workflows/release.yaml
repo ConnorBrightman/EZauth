@@ -3,10 +3,10 @@ name: Build & Release EZauth
 on:
   push:
     tags:
-      - 'v*'  # Trigger on version tags like v0.1.0
+      - 'v*'  # triggers on version tags like v0.1.0
 
 permissions:
-  contents: write  # Needed to create releases
+  contents: write
 
 jobs:
   build:
@@ -17,8 +17,8 @@ jobs:
         goarch: [amd64]
 
     steps:
-      # 1. Checkout code
-      - name: Checkout repo
+      # 1. Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
       # 2. Setup Go
@@ -35,24 +35,17 @@ jobs:
       # 4. Build binaries
       - name: Build binary
         run: |
-          mkdir -p dist
+          mkdir -p release
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            output="dist/ezauth_${VERSION}.exe"
+            output="release/ezauth_${VERSION}.exe"
           else
-            output="dist/ezauth_${VERSION}"
+            output="release/ezauth_${VERSION}"
           fi
           echo "Building $output"
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o $output ./cmd/ezauth
 
-      # 5. Generate SHA256 checksums
-      - name: Generate checksums
-        run: |
-          cd dist
-          shasum -a 256 ezauth_${VERSION}* > checksums_${VERSION}.txt
-          cd ..
-
-      # 6. Upload to GitHub Release
-      - name: Upload Release
-        uses: softprops/action-gh-release@v2
+      # 5. Upload binaries to GitHub Release
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1  # use v1 to avoid finalize/retry errors
         with:
-          files: dist/*
+          files: release/*
