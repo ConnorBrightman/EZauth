@@ -3,10 +3,13 @@ name: Build & Release EZauth
 on:
   push:
     tags:
-      - "v*" # Trigger on version tags like v0.1.0
+      - 'v*'  # triggers on version tags like v0.1.0
+
+permissions:
+  contents: write  # ensures the workflow can create releases
 
 jobs:
-  build-release:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,49 +18,36 @@ jobs:
 
     steps:
       # 1. Checkout repo
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # 2. Set up Go
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      # 2. Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
-      # 3. Build binary
+      # 3. Build binaries
       - name: Build binary
         run: |
           mkdir -p dist
-          # Decide output name for release
           if [ "${{ matrix.goos }}" = "windows" ]; then
             output="dist/ezauth.exe"
           else
             output="dist/ezauth"
           fi
+          echo "Building $output"
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o $output ./cmd/ezauth
-          echo "Built binary: $output"
 
-      # 4. Generate checksums
+      # 4. Generate SHA256 checksums
       - name: Generate checksums
         run: |
           cd dist
           shasum -a 256 * > checksums.txt
           cd ..
 
-      # 5. Create GitHub Release
-      - name: Create Release
-        id: release
-        uses: softprops/action-gh-release@v1
+      # 5. Upload binaries + checksum to GitHub Release
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # 6. Upload binaries and checksum
-      - name: Upload release assets
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.release.outputs.upload_url }}
-          asset_path: dist/*
-          asset_name: $(basename dist/*)
-          asset_content_type: application/octet-stream
+          files: dist/*
