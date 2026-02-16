@@ -1,4 +1,5 @@
-module ezauth
+module github.com/ConnorBrightman/EZAuth
+
 
 
 go 1.25.6
