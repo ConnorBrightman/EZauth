@@ -23,10 +23,12 @@ type Config struct {
 
 // LoadConfig loads configuration from ./config.yaml or defaults
 func LoadConfig() *Config {
-	viper.SetConfigName("config")
+	configFile := "config.yaml"
+
+	// Force viper to read the exact file
+	viper.SetConfigFile(configFile)
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".") // current working directory
-	viper.AutomaticEnv()
+	viper.AutomaticEnv() // allow env overrides
 
 	// Default values
 	viper.SetDefault("PORT", "8080")
@@ -38,11 +40,13 @@ func LoadConfig() *Config {
 	viper.SetDefault("FILE_PATH", filepath.Join("ezauth-data", "users.json"))
 	viper.SetDefault("LOGGING_ENABLED", true)
 
+	// Read config
 	if err := viper.ReadInConfig(); err != nil {
-		log.Println("No config.yaml found in current directory, using defaults and environment variables")
+		log.Println("No config file found, using defaults and environment variables")
+	} else {
+		log.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
-	// Parse durations
 	accessDur, err := time.ParseDuration(viper.GetString("ACCESS_TOKEN_EXPIRY"))
 	if err != nil {
 		log.Fatalf("Invalid ACCESS_TOKEN_EXPIRY: %v", err)

@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 func printHelp() {
-	fmt.Println("ezauth - lightweight local authentication server")
+	fmt.Println("EZauth - Authentication made EZ")
 	fmt.Println()
 	fmt.Println("Usage:")
 	fmt.Println("  ezauth init       Initialize config.yaml")
