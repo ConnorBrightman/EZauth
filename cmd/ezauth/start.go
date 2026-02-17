@@ -10,11 +10,11 @@ import (
 	"github.com/ConnorBrightman/ezauth/internal/api"
 	"github.com/ConnorBrightman/ezauth/internal/auth"
 	"github.com/ConnorBrightman/ezauth/internal/config"
+	"github.com/ConnorBrightman/ezauth/internal/fileserver"
 	"github.com/ConnorBrightman/ezauth/internal/middleware"
 )
 
 func runStart() {
-
 	// Load configuration
 	cfg := config.LoadConfig()
 
@@ -51,8 +51,22 @@ func runStart() {
 	// Create router with JWT secret
 	router := api.NewRouter(service, []byte(cfg.JWTSecret))
 
-	// Wrap router with logging middleware
-	handler := middleware.Logging(router)
+	// --- Serve static files ---
+	// Static folder for /index.html, /register.html etc
+	fsHandler := fileserver.ServePublic()
+	// Wrap router: static files first, then API routes
+	mainHandler := http.NewServeMux()
+	mainHandler.Handle("/", fsHandler)
+
+	// Optional: map clean URLs to HTML files
+	mainHandler.HandleFunc("/register", fileserver.ServePage("/register", "register.html"))
+	mainHandler.HandleFunc("/login", fileserver.ServePage("/login", "login.html"))
+
+	// Mount API router under /auth
+	mainHandler.Handle("/auth/", router)
+
+	// Wrap with logging middleware
+	handler := middleware.Logging(mainHandler)
 
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 	server := &http.Server{
