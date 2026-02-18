@@ -1,9 +1,0 @@
-{
-  "test@test123.com": {
-    "id": "c2b27f16-6c28-4c68-8fbe-9bae03dcd6d5",
-    "email": "test@test123.com",
-    "password": "$2a$10$gUfA53gLFi.yPFFJYyau4OMkmtlXn/i.a.T7aDReGM4a/Xir8/Ivi",
-    "refresh_token": "$2a$10$iZ8Ueawatfk27JOE18HqV.8z5MbD3oUVhU74IJa52CPjp2FEkvRxi",
-    "refresh_expiry": 1771869507
-  }
-}

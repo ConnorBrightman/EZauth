@@ -8,42 +8,51 @@ import (
 	"path/filepath"
 )
 
-//go:embed HTML/*
+//go:embed demo/*
 var templateFiles embed.FS
 
 func GenerateTemplates() error {
 	publicDir := "public"
 
-	if _, err := os.Stat(publicDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(publicDir, 0755); err != nil {
-			return err
-		}
+	if err := os.MkdirAll(publicDir, 0755); err != nil {
+		return err
 	}
 
-	// Walk embedded files
-	return fs.WalkDir(templateFiles, "HTML", func(path string, d fs.DirEntry, err error) error {
+	sub, err := fs.Sub(templateFiles, "demo")
+	if err != nil {
+		return err
+	}
+
+	return fs.WalkDir(sub, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			log.Printf("❌ Skipping %s due to error: %v", path, err)
+			log.Printf("❌ Error walking %s: %v", path, err)
 			return nil
 		}
+
+		if path == "." {
+			return nil
+		}
+
+		destPath := filepath.Join(publicDir, path)
 
 		if d.IsDir() {
-			return nil
+			return os.MkdirAll(destPath, 0755)
 		}
 
-		data, err := templateFiles.ReadFile(path)
+		data, err := fs.ReadFile(sub, path)
 		if err != nil {
-			log.Printf("❌ Failed to read embedded template %s: %v", path, err)
+			log.Printf("❌ Failed to read %s: %v", path, err)
 			return nil
 		}
 
-		dest := filepath.Join(publicDir, filepath.Base(path))
-		if _, err := os.Stat(dest); os.IsNotExist(err) {
-			if err := os.WriteFile(dest, data, 0644); err != nil {
-				log.Printf("❌ Failed to write %s: %v", dest, err)
-			} else {
-				log.Printf("✅ Created %s", dest)
-			}
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			log.Printf("❌ Failed to write %s: %v", destPath, err)
+		} else {
+			log.Printf("✅ Created %s", destPath)
 		}
 
 		return nil
